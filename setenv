@@ -1,0 +1,9 @@
+#load with 
+#source setenv
+export SIPS_DIR=~/spectrum-slicing/
+export SLEPC_DIR=~/slepc-3.9.2/
+export SCALAPACK_DIR=~/scalapack-2.0.2
+export PETSC_DIR=~/petsc-3.9.3/
+export PETSC_ARCH=arch-linux2-c-opt
+export LD_LIBRARY_PATH=~/spectrum-slicing/:${PETSC_DIR}${PETSC_ARCH}/lib:${SLEPC_DIR}${PETSC_ARCH}/lib:$LD_LIBRARY_PATH
+export OMP_NUM_THREADS=1
