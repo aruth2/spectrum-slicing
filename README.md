@@ -22,7 +22,7 @@ Table of Contents:
 The spectrum slicing algorithm may be appropriate for your problem if *all* the following conditions are met:
 
 1. [The matrix to be diagonalized is sparse and symmetric](#time-to-solution-versus-sparsity)
-1. The matrix is real (At present only routines for real matrices are presented. Routines for complex matrices will be available in a future release, however they will be restricted to full multicommunicator mode which may limit performance in some situations). 
+1. The matrix is real (At present only routines for real matrices are presented. Routines for complex matrices will be available in a future release, however they will be restricted to full multicommunicator mode which will limit problem size). 
 
 Additionally *at least one* of the following must be true for reasonable performance:
 1. [The eigenspectrum is nearly linearly distributed.](*poor-distribution-of-eigenspectrum)
@@ -34,10 +34,10 @@ Additionally *at least one* of the following must be true for reasonable perform
 
 # How do I use the Spectrum-Slicing algorithm?
 ## Compiling the code
-First the user must install PETSc and SLEPc at least versions 3.9. The only configure option recommended of PETSc is to use --with-debugging=0
-Next, the user must ensure that the environmental variables PETSC_DIR, SLEPC_DIR, and PETSC_ARCH according to their PETSc/SLEPc installation. Also, the user must set the variables SIPS_DIR, LD_LIBRARY_PATH (to contain SIPS_DIR), OMP_NUM_THREADS=1, and (optionally) SCALAPACK_DIR. The file setenv contains prototypes of these definitions and can be loaded with the source command in bash.
+First the user must install PETSc and SLEPc at least versions 3.9. The only configure option recommended of PETSc is to use --with-debugging=0. Future versions of this library which will implement the multiple processes per slice architecture for large problems may require MUMPS, ParMetis, and PT-Scotch)
+Next, the user must ensure that the environmental variables PETSC_DIR, SLEPC_DIR, and PETSC_ARCH are set according to their PETSc/SLEPc installation. Also, the user must set the variables SIPS_DIR, LD_LIBRARY_PATH (to contain SIPS_DIR), OMP_NUM_THREADS=1, and (optionally) SCALAPACK_DIR. The file setenv contains prototypes of these definitions and can be loaded with the source command in bash.
 
-The change to the SIPS directory and call 
+Then change to the SIPS directory and call 
 
     make
     
@@ -88,6 +88,17 @@ Like Lapack, the JOBZ argument can be used to control whether the eigenvectors o
 Like Lapack, UPLO can be used to specify that only the upper or lower triangle of the matrix has been provided. UPLO='U' or 'u' for upper and UPLO='L' or 'l' for lower. The missing triangle will be filled in by symmetry before solving. The default option is neither and the passed matrices are assumed to be symmetric. 
 
 ## SIPSolve - Solver for PETSc matrices
+The definition of SIPSolve is:
+
+    PetscErrorCode  SIPSolve(Mat *A_pttr, Mat *B_pttr, PetscReal *interval, PetscInt interval_optimization, PetscReal *eig_prev, PetscInt nEigPrev, EPS  *returnedeps)
+    
+A_pttr - pointer to PETSc matrix A. It was chosen to make this a pointer to facilitate communication with fortran.
+B_pttr - pointer to PETSc matrix B.
+
+interval, interval_optimization, eig_prev, and nEigPrev behave the same as in dsygvx including with regards to passing of NULL to enable default options.
+
+returnedeps returns the Eigen Problem Solver object from the SLEPc library. The EPS object contains the solution (eigenvalues and eigenvectors) to the problem. These can be object by a call to eigenvaluesFromEPS(EPS *epsaddr,double *W,int N), int eigenvectorsFromEPS(EPS *epsaddr,PetscScalar *A,int N), or simultaneous with squareFromEPS(EPS *epsaddr,PetscScalar *A,double *W,int N). A lot of memory is used by the EPS object and should be cleaned up by EPSDestroy. Users solving very large problems may wish to use the features of SIPSolve only for the first diagonalization and perform future diagonalizations starting with returnedeps. 
+
 # Description of contents
 ## sips.c / libsips.so
 ## sipssquare.c / libsips_square.so
