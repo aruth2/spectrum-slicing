@@ -106,7 +106,22 @@ Because the spectrum slicing algorithm maintains nearly the same process efficie
 
 ## Time to solution versus number of processes
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SecondDiagRate.png)
-![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png)
+![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png) 
+
+## Route to Solution Versus Problem Size
+Regardless of what size your problem is, load balancing is a major issue. Be sure to understand the basic difficulties of load balancing in the spectrum-slicing algorithm.
+
+### The dense matrix fits within the memory available to a single process.
+The smallest problem size worth mentioning. Here the recommended solution is to use the sips_square drivers. These are by the far the simplest to use and will require minimal changes to your code. Although there are some superfluous calls, they have a computational cost of O($n*N^2$) and are not significant compared to the diagonalization cost of O($N^3$). The per-process memory usage will be $N^2$ times 8 (double precision) or 16 (complex double precision) times a small multiplier (1-5). The performance increases efficiently with the number of processes in this region, but because of the limited system size calculations can become fast enough with ~100 processes that there is almost no utility in adding more.
+
+### The sparse matrix fits within the memory available to a single process.
+Here you will have to use the more complex driver SIPSolve. This will require assembling PETSc matrices directly without allocating dense matrices. If n<<N, then aseembling PETSc matrices and other O(N^2) operations can still be carried out in series and this will not significantly affect performance. The diagonalization should be done in full multicommunicator mode (i.e. 1 process/slice. currently, this is the only option, but in the future it will be the default option). This will result in each process having a full copy of the sparse matrix during solving which uses more memory than other solvers, but it comes with greater speed. The performance remains quite efficient throughout this entire range.
+
+### The sparse matrix cannot fit within the memory available to a single process
+This will require setting more than 1 process/slice (not currently implemented, see EPSKrylovSchurSetIntervals). As the number of processes per slice goes up, the efficiency will go down drastically. However, this is necessary to fit the matrix in memory. This is not currently implemented, and you will have to deviate from the code of SIPSolve to implement this. It is recommend to keep the number of processes per slice to a minimum to achieve diagonalization in the least time, but it should be sufficient to provide enough memory for the matrix. **NOTE** At present there is little we can do to make this available for complex matrices. The mumps package which will be used to allow more than 1 process/slice for real matrices does not provide an inertia calculation for complex matrices. Therefore, complex eigenvalue problems in this size range will likely remain unsolvable by SIPS for the near future.  
+
+
+
 
 ## Load Balancing
 
