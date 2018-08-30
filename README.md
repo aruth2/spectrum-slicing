@@ -94,5 +94,20 @@ Like Lapack, UPLO can be used to specify that only the upper or lower triangle o
 ## sips_squaretest.c / sips_square executable
 # What are the important knobs and performance characteristics of the solver?
 ## Time to solution versus sparsity
+Many users wish to know what algorithm will solve their problem the fastest. If you estimate the time to solution for each algorithm on a single process, and know the soft scaling behavior of the algorithm as the number of processes is increased, then an estimate of which algorithm will be faster is straightforward.
+
+Therefore, here we compare the time to solution of the spectrum slicing algorithm (dsygvs) and lapack (dsygv) versus the problem size (N, set using the -rows option of sips_squaretest) and the sparsity (controlled using the -nonzerodiagonals option of sips_squaretest). The matrices produced were diagonalized by both algorithms and were timed using the time command.
+
+![SIPS Versus Lapack Timing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SipsVsLapackTiming.png)
+
+Each color shade represents a factor of 2 difference in speed. We find roughly equal speed between the lapack and sips calls when 1/16th (about 6%) of the matrix is nonzero. 
+
+Because the spectrum slicing algorithm maintains nearly the same process efficiency (assuming proper load balancing) as the number of processes increases, if SIPS is faster for a single process it will also likely be faster for parallel runs. Additionally, some of the area of the graph which shows lapack being faster, may shift to SIPS being faster when parallelism is considered based on the parallel performance of the other algorithm. 
+
 ## Time to solution versus number of processes
-## Poor distribution of eigenspectrum
+![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SecondDiagRate.png)
+![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png)
+
+## Load Balancing
+
+
