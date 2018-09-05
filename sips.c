@@ -54,7 +54,9 @@ PetscErrorCode SIPSShowErrors(EPS eps)
 	return(0);
 }
 
-PetscErrorCode SIPSIntervalOptimization(EPS eps,double *interval)
+#undef __FUNCT__
+#define __FUNCT__ "SIPSIntervalOptimization"
+PetscErrorCode SIPSIntervalOptimization(EPS eps,PetscReal *interval)
 {
         /* This section of the code uses matrix-inertia calculations to optimize the interval. The downside is that at least 3 inertia calculation must be performed before the run.
       *  My tests indicate that the time required to do this was small, a bad interval can significantly slow down the calculation, and so this is an effective strategy when
@@ -64,12 +66,13 @@ PetscErrorCode SIPSIntervalOptimization(EPS eps,double *interval)
     PetscReal      *shifts;
     PetscInt        nshifts=1,m,n;
     PetscInt       *inertias;
-    inertias[0]=inertias[1]=0;
+    //inertias[0]=inertias[1]=0;
     
     Mat A,B;
     ierr = EPSGetOperators(eps,&A,&B);CHKERRQ(ierr);
     ierr = MatGetSize(A,&m,&n);CHKERRQ(ierr); 
     
+
     double intervalgrowthrate = 0.1,growth;
     do
     { 
@@ -109,6 +112,10 @@ PetscErrorCode SIPSIntervalOptimization(EPS eps,double *interval)
     return 0;
 }
 
+
+
+#undef __FUNCT__
+#define __FUNCT__ "SIPSSubIntervalFromEigenvalues"
 PetscErrorCode SIPSSubIntervalFromEigenvalues(EPS eps, double *interval, double *eig_prev, PetscInt nEigPrev)
 {
     double epsilon = 1e-4;
@@ -154,7 +161,8 @@ PetscErrorCode SIPSSubIntervalFromEigenvalues(EPS eps, double *interval, double 
     return 0;
 }
 
-
+#undef __FUNCT__
+#define __FUNCT__ "SIPSSolve"
 PetscErrorCode  SIPSolve(Mat *A_pttr, Mat *B_pttr, PetscReal *interval, PetscInt interval_optimization, PetscReal *eig_prev, PetscInt nEigPrev, EPS  *returnedeps)
 {
     
@@ -242,22 +250,24 @@ PetscErrorCode  SIPSolve(Mat *A_pttr, Mat *B_pttr, PetscReal *interval, PetscInt
   
 
     PetscPrintf(PETSC_COMM_WORLD,"\n  EPSSolve ...\n ------------------- \n"); 
-    
     if(eig_prev == NULL)
     {
         if(!interval_optimization)
         {
+        PetscPrintf(PETSC_COMM_WORLD,"Using given interval %g %g\n",interval[0],interval[1]);     
         ierr = EPSSetInterval(eps,interval[0],interval[1]);CHKERRQ(ierr);
         ierr = EPSSetUp(eps);CHKERRQ(ierr);
 //    ierr = EPSKrylovSchurGetInertias(eps,&nshifts,&shifts,&inertias);
         }
         else
         {
+            PetscPrintf(PETSC_COMM_WORLD,"Optimizing interval\n");     
             SIPSIntervalOptimization(eps,interval);
         }
     }
     else //eig_prev exists, use it to set interval
     {
+        PetscPrintf(PETSC_COMM_WORLD,"Retrieving subintervals from previous eigenvalues\n"); 
         SIPSSubIntervalFromEigenvalues(eps, interval, eig_prev,nEigPrev);
     
     }
@@ -296,6 +306,8 @@ PetscErrorCode  SIPSolve(Mat *A_pttr, Mat *B_pttr, PetscReal *interval, PetscInt
     return(0);
 }
 
+#undef __FUNCT__
+#define __FUNCT__ "SIPSCreateDensityMat"
 int SIPSCreateDensityMat(EPS *epsaddr, double *weights, int N, Mat *P)
 {	
 	PetscPrintf(PETSC_COMM_WORLD,"Trying to extract density Mat from converged solution\n");
