@@ -6,6 +6,15 @@
 #include "scalapack_interface.h"
 #endif
 
+char *helpstring =
+"Usage [mpiexec -n nprocs] ./sips_square [options]\n"
+"-h                - print this help message\n"
+"-lapack           - diagonalize with lapack instead of SIPS. Should be used with only a single process\n"
+"-scalapack        - diagonalize with scalapack instead of SIPS. Must be compiled with the USE_SCALAPACK option set in both 'makefile' and 'sips_squaretest.c'"
+"-rows             - the dimensions N of the problem\n"
+"-nonzerodiagonals - the number of columns of the matrix which are filled. Using a high value results in an eigenspectrum with a poor distribution of eigenvalues.\n"
+"-doublediag       - perform the diagonalization twice. The first time an equal distribution of slices is used. The second time the results from the previous diagonalization are used\n";
+
 int solver = 0; //0 SIPS, 1 LAPACK, 2 SCALAPACK
 int rows = 10000;
 int nonzerodiagonals = 2;
@@ -178,6 +187,11 @@ int main(int argc,char **argv)
 	int i;
 	for(i=0;i<argc;i++)
 	{
+        if(!strcmp(argv[i],"-h"))
+        {
+            printf("%s\n",helpstring);
+            exit(0);
+        }
         if(!strcmp(argv[i],"-lapack"))
             solver = 1;
         if(!strcmp(argv[i],"-scalapack"))
