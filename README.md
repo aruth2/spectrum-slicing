@@ -1,7 +1,7 @@
-# spectrum-slicing
+# Spectrum-Slicing
 Easy to use and well-documented (hopefully soon ;) Spectrum Slicing.
 
-The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the spectrum-slicing algorithm is a numerical method for solving large eigenvalue problems. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[ref] Like many high-performance products, the algorithm features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
+The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
 
 # Goals of this library:
 1. Provide easy-to-use interfaces which work well in most situations.
@@ -34,10 +34,11 @@ Additionally *at least one* of the following must be true for reasonable perform
 
 # How do I use the Spectrum-Slicing algorithm?
 ## Compiling the code
+
 First the user must install PETSc and SLEPc at least versions 3.9. The only configure option recommended of PETSc is to use --with-debugging=0. Future versions of this library which will implement the multiple processes per slice architecture for large problems may require MUMPS, ParMetis, and PT-Scotch)
 Next, the user must ensure that the environmental variables PETSC_DIR, SLEPC_DIR, and PETSC_ARCH are set according to their PETSc/SLEPc installation. Also, the user must set the variables SIPS_DIR, LD_LIBRARY_PATH (to contain SIPS_DIR), OMP_NUM_THREADS=1, and (optionally) SCALAPACK_DIR. The file setenv contains prototypes of these definitions and can be loaded with the source command in bash.
 
-Then change to the SIPS directory and call 
+To compile change to the SIPS directory and call 
 
     make
     
@@ -45,19 +46,22 @@ The code can be tested by calling
 
     make test
 
+Additional information about the test program sips_square can be found by running sips_square -h, or by examining the examples in the makefile.
+
 ## Using the code
 
 In order to use the code, the header files which describe the available functions should be included:
 
     #include <sips.h>
 or    
+
     #include <sips_square.h>
 
-The libraries containing the compiled code should be linked by the compiler by adding -lsips or -lsips_square respectively.
+The libraries containing the compiled code should be linked by the compiler by adding -L${SIPS_DIR} and by using -lsips and/or -lsips_square.
 
 Finally, the code should be changed to call the sips eigensolver. 
 
-Assuming your code uses a serial eigensolver (e.g. dsyev from Lapack), then the sips_square eigensolver can be utilized by replacing the call to the serial eigensolver with either the simple or complex sips_square driver, and when running the program call it with 
+Assuming your code uses a serial eigensolver (e.g. dsyev from Lapack), then the sips_square eigensolver can be utilized by replacing the call to the serial eigensolver with either the simple (dsygvs) or complex sips_square (dsygvsx) driver, and when running the program call it with 
 
     mpiexec -n n_procs my_program
 
@@ -81,7 +85,7 @@ NULL is accepted to set the default behavior for B, interval_optimization, inter
 
 If previous eigenvalues are provided, by specifying the number of eigenvalues in the argument prev_eigenvalues, and those eigenvalues are placed in W, then the previous eigenvalues will be used to create a eigenvalue distribution and the driver will create slices with roughly the same of eigenvalues in each slice. Additionally, W does not have to contain actual eigenvalues and could instead be used to specify an expected probability distribution. For instance, if the values places in W are logarithmically distributed, then the slices created will be logarithmically distributed. The the values used to set the subintervals do not span the entire eigenspectrum, then on exit, N will contain the number of eigenvalues/eigenvectors found.
 
-If the previous eigenvalue option has not been set, the driver will next turn to the interval and interval_optimization options. If interval optimization is turned on (*default*), then the driver will use matrix inertia calculation to enlarge and then shrink the interval so that the entire eigenspectrum is contained in the interval. The slices will then be uniformly distributed throughout the interval. If interval optimization is turned off, then it will be assumed that interval[0] is the left end of the interval to be solved and interval[1] is the right end. On exit, N will contain the number of eigenvalues/eigenvectors found. 
+If the previous eigenvalue option has not been set, the driver will next turn to the interval and interval_optimization options. If interval optimization is turned on (*default*), then the driver will use matrix inertia calculations to enlarge and then shrink the interval so that the entire eigenspectrum is contained in the interval. The slices will then be uniformly distributed throughout the interval. If interval optimization is turned off, then it will be assumed that interval[0] is the left end of the interval to be solved and interval[1] is the right end. On exit, N will contain the number of eigenvalues/eigenvectors found. 
 
 Like Lapack, the JOBZ argument can be used to control whether the eigenvectors overwrite A on exit and the eigenvalues overwrite W on exit (using the value 'V' or 'V' (*default*)) or only the eigenvalues overwrite W on exit (using the value 'N' or 'n')
 
@@ -101,7 +105,54 @@ returnedeps returns the Eigen Problem Solver object from the SLEPc library. The 
 
 # Description of contents
 ## sips.c / libsips.so
+
+SIPSShowInertias(EPS eps)
+ -prints the subintervals and inertias
+ 
+SIPSShowVersions()
+ -prints the version of PETSc and SLEPc used
+ 
+SIPSShowErrors(EPS eps)
+ -prints errors resulting from EPSSolve
+ 
+SIPSIntervalOptimization(EPS eps,double *interval)
+ performs the interval optimization starting with the left end, interval[0], and the right end, interval[1]. On exit, and optimized interval is returned and set to the EPS object.
+
+SIPSolve(Mat *A_pttr, Mat *B_pttr, PetscReal *interval, PetscInt interval_optimization, PetscReal *eig_prev, PetscInt nEigPrev, EPS  *returnedeps)
+ Given matrix A, and [optionally] matrix B, along with the other options, this performs a diagonlization using the spectrum slicing object. On output the solution is stored in returnedeps.
+
+SIPSCreateDensityMat(EPS *epsaddr, double *weights, int N, Mat *P)
+ This takes an EPS object along with a set of weights for each eigenvector and returns a PETSc matrix, P, which is a density matrix. 
+
+
 ## sipssquare.c / libsips_square.so
+
+LTtoSym(PetscScalar *matrix, int rows, int columns)
+
+UTtoSym(PetscScalar *matrix, int rows, int columns)
+
+dsyevs(int 	*N, double  *A, double 	*W)
+
+dsygvs(int 	*N, double  *A, double  *B, double 	*W)
+
+dsygvsx( int 	*N, double  *A, double  *B, double 	*W, PetscInt interval_optimization, double *interval, int prev_eigenvalues, char 	*JOBZ, char *UPLO)
+
+eigenvaluesFromEPS(EPS *epsaddr,double *W,int N)
+
+eigenvectorsFromEPS(EPS *epsaddr,PetscScalar *A,int N)
+
+double listmax(double *list, int num)
+
+double listmin(double *list, int num)
+
+void printdatatypes()
+
+printmatrix(double *matrix, int rows, int cols, int stride, int rowmajor, int brief)
+
+squareFromEPS(EPS *epsaddr,PetscScalar *A,double *W,int N)
+
+Mat squareToPetsc(PetscScalar *A, int N)
+
 ## sips_squaretest.c / sips_square executable
 # What are the important knobs and performance characteristics of the solver?
 ## Time to solution versus sparsity
