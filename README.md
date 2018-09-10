@@ -1,11 +1,12 @@
 # Spectrum-Slicing
 Easy to use Spectrum Slicing.
-*Disclaimer* This library and the accompanying documentation are still in development. If you find any bugs, have any suggestions, or find any documentation that is confusing, please post an issue. It will help make this library better for future users. 
+
+\**Disclaimer*\* - This library and the accompanying documentation are still in development. If you find any bugs, have any suggestions, or find any documentation that is confusing, please post an issue. It will help make this library better for future users. 
 
 
-The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems $A\lambda_i=\lambda_i \epsilon_i$ or generalized eigenvalue problems $A\lambda_i=B \lambda_i \epsilon_i$. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
+The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems <img src="https://latex.codecogs.com/gif.latex?A\lambda_i=\lambda_i \epsilon_i"/> or generalized eigenvalue problems $A\lambda_i=B \lambda_i \epsilon_i$. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
 
-# Goals of this library:
+## Goals of this library:
 1. Provide easy-to-use interfaces which work well in most situations.
   Currently, 3 interfaces are provided of gradually increasing difficulty of use (dsygvs, dsygvsx, and SIPSsolve). 
 2. Explain the basic performance considerations of the algorithm, limitations, effective strategies, and available controls.
@@ -62,7 +63,7 @@ or
 
     #include <sips_square.h>
 
-The libraries containing the compiled code should be linked by the compiler by adding -L${SIPS_DIR} and by using -lsips and/or -lsips_square.
+The libraries containing the compiled code should be linked by the compiler by adding -L\${SIPS_DIR} and by using -lsips and/or -lsips_square.
 
 Finally, the code should be changed to call the sips eigensolver. 
 
