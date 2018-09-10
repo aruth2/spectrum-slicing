@@ -1,7 +1,9 @@
 # Spectrum-Slicing
-Easy to use and well-documented (hopefully soon ;) Spectrum Slicing.
+Easy to use Spectrum Slicing.
+*Disclaimer* This library and the accompanying documentation are still in development. If you find any bugs, have any suggestions, or find any documentation that is confusing, please post an issue. It will help make this library better for future users. 
 
-The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
+
+The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems $A\lambda_i=\lambda_i \epsilon_i$ or generalized eigenvalue problems $A\lambda_i=B \lambda_i \epsilon_i$. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
 
 # Goals of this library:
 1. Provide easy-to-use interfaces which work well in most situations.
@@ -15,7 +17,10 @@ Table of Contents:
   * [dsygvsx - Expert Driver for square matrices](#dsygvsx---expert-driver-for-square-matrices)
   * [SIPSolve - Solver for PETSc matrices](#sipsolve---solver-for-petsc-matrices)
 *  Performance characteristics and theory.
-
+  * [Load Balancing](#load-balancing)
+  * [Time to solution versus sparsity](#time-to-solution-versus-sparsity)
+  * [Time to solution versus number of processors](#time-to-solution-versus-number-of-processors)
+  * [Suggested route to solution for different problem sizes](#route-to-solution-versus-problem-size)
 
 # Is the Spectrum-Slicing algorithm the right solution to my problem?
 
@@ -125,7 +130,7 @@ Each color shade represents a factor of 2 difference in speed. We find roughly e
 
 Because the spectrum slicing algorithm maintains nearly the same process efficiency (assuming proper load balancing) as the number of processes increases, if SIPS is faster for a single process it will also likely be faster for parallel runs. Additionally, some of the area of the graph which shows lapack being faster, may shift to SIPS being faster when parallelism is considered based on the parallel performance of the other algorithm. 
 
-## Time to solution versus number of processes
+## Time to solution versus number of processors
 Here we present two diagonlization tests which measure the time to solution versus the number of processes. The two tests different in the way load-balancing was achieved. In each case we fit the run time to Amdahl's law. Amdahl's law assumes the run time can be divided into parallel and serial components. Although the actual run time versus the number of processors for spectrum-slicing does not match the shape of the Amdahl's law curve (the run time is all parallel, but affected by load balancing), it is still a useful means to compare the parallel performance, and the "serial" portion is in some ways similar to the process which was given the largest load.
 
 The first test is of a matrix with an eigenspectrum that is distributed like a cosine function. The matrix had 4000 rows and 184 nonzero entries in each row. The speed to achieve diagonalization was timed with 1-48 processes. 1 process took 619 seconds, and 48 processes took 46 seconds (13.5x speedup). 
