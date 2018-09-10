@@ -1,7 +1,7 @@
 # Spectrum-Slicing
 Easy to use and well-documented (hopefully soon ;) Spectrum Slicing.
 
-The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
+The Shift-and-Invert Parallel Eigenproblem Solver (SIPS) also known as the Spectrum-Slicing algorithm is a numerical method for solving large eigenvalue problems. The crux of the algorithm is to divide the eigenspectrum into slices which can be solved independently. Because each slice can be solved independently, interprocess communication is kept to a minimum, and efficient performance is maintained up to very large matrices with a very large number of processes in use. An implementation of the spectrum-slicing algorithm demonstrated good performance up to a N=500,000 matrix with n=200,000 processes.[[Ref](https://doi.org/10.1002/jcc.24254)] Like many high-performance algorithms, Spectrum-Slicing features numerous controls, optimization strategies, and difficulties that may arise based on the specifics of the problem. Although the algorithm has typically been applied to large-scale problems, it is the opinion of the author that the characteristics of the algorithm also make it an excellent choice for many small and medium-sized problems. Therefore, this library provides general use interfaces to facilitate easy addition of computer power to your existing code. The library is built on top of PETSc and SLEPc; at least version 3.9 of each is required and tests were performed on PETSc 3.9.3 and SLEPc 3.9.2
 
 # Goals of this library:
 1. Provide easy-to-use interfaces which work well in most situations.
@@ -105,6 +105,15 @@ returnedeps returns the Eigen Problem Solver object from the SLEPc library. The 
 
 
 # What are the important knobs and performance characteristics of the solver?
+## Load Balancing
+The time taken for a slice to be solved is proportional to the number of eigenvalues in the slice, although this is not the only consideration. From this assumption, it follows that the time to completion is proportional to the maximum number of eigenvalues in any slice. A good first guess to achieving proper load balancing, is to aim for each subinterval to contain an equal number of eigenvalues. Here is the spectrum of a matrix which results in poor load balancing using the defaul options. This matrx was created using:
+
+    ./sips_square -rows 2000 -nonzerodiagonals 100
+
+The eigenvalues have been binned into 48 bins as this matrix was diagonalized and timed with 1-48 processes. It is apparent that a single slice contains more than half the eigenvalues.
+![Load Balancing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SpectrumHistrogram.png)
+
+
 ## Time to solution versus sparsity
 Many users wish to know what algorithm will solve their problem the fastest. If you estimate the time to solution for each algorithm on a single process, and know the soft scaling behavior of the algorithm as the number of processes is increased, then an estimate of which algorithm will be faster is straightforward.
 
@@ -117,8 +126,17 @@ Each color shade represents a factor of 2 difference in speed. We find roughly e
 Because the spectrum slicing algorithm maintains nearly the same process efficiency (assuming proper load balancing) as the number of processes increases, if SIPS is faster for a single process it will also likely be faster for parallel runs. Additionally, some of the area of the graph which shows lapack being faster, may shift to SIPS being faster when parallelism is considered based on the parallel performance of the other algorithm. 
 
 ## Time to solution versus number of processes
-![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SecondDiagRate.png)
+Here we present two diagonlization tests which measure the time to solution versus the number of processes. The two tests different in the way load-balancing was achieved. In each case we fit the run time to Amdahl's law. Amdahl's law assumes the run time can be divided into parallel and serial components. Although the actual run time versus the number of processors for spectrum-slicing does not match the shape of the Amdahl's law curve (the run time is all parallel, but affected by load balancing), it is still a useful means to compare the parallel performance, and the "serial" portion is in some ways similar to the process which was given the largest load.
+
+The first test is of a matrix with an eigenspectrum that is distributed like a cosine function. The matrix had 4000 rows and 184 nonzero entries in each row. The speed to achieve diagonalization was timed with 1-48 processes. 1 process took 619 seconds, and 48 processes took 46 seconds (13.5x speedup). 
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png) 
+
+This next test is of a matrix with a very poor eigenspectrum distribution. The first diagonalization used uniformly distributed subintervals. The second diagonalization used the eigenvalues from the previous run to distribute the subintervals. It can be seen that the first diagonalization only achieved a speed up of about 4x using 48 processor aside from a few points which had a better balance. 
+![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/FirstDiagRate.png)
+We are trying to encode a strategy that will address this slow first run problem by sampling the inertia before the first diagonlization, however, inertia calculations can be costly and we do not yet have a proper cost-benefit analysis for this strategy. 
+
+The second run which used the output of the first run to seed the second resulted in a speedup of 26x on 48 processes.
+![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SecondDiagRate.png)
 
 ## Route to Solution Versus Problem Size
 Regardless of what size your problem is, load balancing is a major issue. Be sure to understand the basic difficulties of load balancing in the spectrum-slicing algorithm.
@@ -131,12 +149,6 @@ Here you will have to use the more complex driver SIPSolve. This will require as
 
 ### The sparse matrix cannot fit within the memory available to a single process
 This will require setting more than 1 process/slice (not currently implemented, see EPSKrylovSchurSetIntervals). As the number of processes per slice goes up, the efficiency will go down drastically. However, this is necessary to fit the matrix in memory. This is not currently implemented, and you will have to deviate from the code of SIPSolve to implement this. It is recommend to keep the number of processes per slice to a minimum to achieve diagonalization in the least time, but it should be sufficient to provide enough memory for the matrix. **NOTE** At present there is little we can do to make this available for complex matrices. The mumps package which will be used to allow more than 1 process/slice for real matrices does not provide an inertia calculation for complex matrices. Therefore, complex eigenvalue problems in this size range will likely remain unsolvable by SIPS for the near future.  
-
-
-
-
-## Load Balancing
-
 
 # Description of contents
 ## sips.c / libsips.so
