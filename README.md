@@ -1,6 +1,4 @@
 # Spectrum-Slicing
-Easy to use Spectrum Slicing.
-
 \**Disclaimer*\* - This library and the accompanying documentation are still in development. If you find any bugs, have any suggestions, or find any documentation that is confusing, please post an issue. It will help make this library better for future users. 
 
 
@@ -17,7 +15,7 @@ Table of Contents:
   * [dsygvs - Solving a square matrix](#dsygvs---solving-a-square-matrix)
   * [dsygvsx - Expert Driver for square matrices](#dsygvsx---expert-driver-for-square-matrices)
   * [SIPSolve - Solver for PETSc matrices](#sipsolve---solver-for-petsc-matrices)
-*  Performance characteristics and theory.
+*  [Performance characteristics and theory](#what-are-the-important-knobs-and-performance-characteristics-of-the-solver)
   * [Load Balancing](#load-balancing)
   * [Time to solution versus sparsity](#time-to-solution-versus-sparsity)
   * [Time to solution versus number of processors](#time-to-solution-versus-number-of-processors)
@@ -117,7 +115,7 @@ The time taken for a slice to be solved is proportional to the number of eigenva
     ./sips_square -rows 2000 -nonzerodiagonals 100
 
 The eigenvalues have been binned into 48 bins as this matrix was diagonalized and timed with 1-48 processes. It is apparent that a single slice contains more than half the eigenvalues.
-![Load Balancing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SpectrumHistrogram.png)
+![Load Balancing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SpectrumHistogram.png)
 
 
 ## Time to solution versus sparsity
@@ -132,16 +130,22 @@ Each color shade represents a factor of 2 difference in speed. We find roughly e
 Because the spectrum slicing algorithm maintains nearly the same process efficiency (assuming proper load balancing) as the number of processes increases, if SIPS is faster for a single process it will also likely be faster for parallel runs. Additionally, some of the area of the graph which shows lapack being faster, may shift to SIPS being faster when parallelism is considered based on the parallel performance of the other algorithm. 
 
 ## Time to solution versus number of processors
+
 Here we present two diagonlization tests which measure the time to solution versus the number of processes. The two tests different in the way load-balancing was achieved. In each case we fit the run time to Amdahl's law. Amdahl's law assumes the run time can be divided into parallel and serial components. Although the actual run time versus the number of processors for spectrum-slicing does not match the shape of the Amdahl's law curve (the run time is all parallel, but affected by load balancing), it is still a useful means to compare the parallel performance, and the "serial" portion is in some ways similar to the process which was given the largest load.
 
+### Matrix with nearly uniform distribution of eigenvalues
 The first test is of a matrix with an eigenspectrum that is distributed like a cosine function. The matrix had 4000 rows and 184 nonzero entries in each row. The speed to achieve diagonalization was timed with 1-48 processes. 1 process took 619 seconds, and 48 processes took 46 seconds (13.5x speedup). 
+
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png) 
 
-This next test is of a matrix with a very poor eigenspectrum distribution. The first diagonalization used uniformly distributed subintervals. The second diagonalization used the eigenvalues from the previous run to distribute the subintervals. It can be seen that the first diagonalization only achieved a speed up of about 4x using 48 processor aside from a few points which had a better balance. 
+### Repeated solving of matrices with similar eigenvalue distributions
+This next test is of a matrix with a very poor eigenspectrum distribution. The first diagonalization used uniformly distributed subintervals. The second diagonalization used the eigenvalues from the previous run to distribute the subintervals. This test was ran using the -doublediag option of sips_square. It can be seen that the first diagonalization only achieved a speed up of about 4x using 48 processor aside from a few points which had a better balance. 
+
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/FirstDiagRate.png)
+
 We are trying to encode a strategy that will address this slow first run problem by sampling the inertia before the first diagonlization, however, inertia calculations can be costly and we do not yet have a proper cost-benefit analysis for this strategy. 
 
-The second run which used the output of the first run to seed the second resulted in a speedup of 26x on 48 processes.
+The second run which used the output of the first run to seed the second run resulted in a speedup of 26x on 48 processes.
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SecondDiagRate.png)
 
 ## Route to Solution Versus Problem Size
