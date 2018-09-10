@@ -23,15 +23,15 @@ Table of Contents:
 
 # Is the Spectrum-Slicing algorithm the right solution to my problem?
 
-The spectrum slicing algorithm may be appropriate for your problem if *all* the following conditions are met:
+The spectrum slicing algorithm may be appropriate for your problem if **all** the following conditions are met:
 
 1. [The matrix to be diagonalized is sparse and symmetric](#time-to-solution-versus-sparsity)
 1. The matrix is real (At present only routines for real matrices are presented. Routines for complex matrices will be available in a future release, however they will be restricted to full multicommunicator mode which will limit problem size). 
 
-Additionally *at least one* of the following must be true for reasonable performance:
-1. [The eigenspectrum is nearly linearly distributed.](*poor-distribution-of-eigenspectrum)
+Additionally **at least one** of the following must be true for reasonable performance:
+1. [The eigenspectrum is nearly linearly distributed.](#matrix-with-nearly-uniform-distribution-of-eigenvalues)
 1. A rough idea of the probability distribution of the eigenspectrum is known a priori.
-1. The eigenspectrum will be solved repeatedly. 
+1. [The eigenspectrum will be solved repeatedly.](#repeated-solving-of-matrices-with-similar-eigenvalue-distributions) 
 1. The problem will be solved with few processes.
 
 *Optionally*, the algorithm can make use of a speedup from computing only a portion of the eigenspectrum.
@@ -39,14 +39,14 @@ Additionally *at least one* of the following must be true for reasonable perform
 # How do I use the Spectrum-Slicing algorithm?
 ## Compiling the code
 
-First the user must install PETSc and SLEPc at least versions 3.9. The only configure option recommended of PETSc is to use --with-debugging=0. Future versions of this library which will implement the multiple processes per slice architecture for large problems may require MUMPS, ParMetis, and PT-Scotch)
+First the user must install PETSc and SLEPc at least versions 3.9. The only configure option recommended of PETSc is to use --with-debugging=0. (Future versions of this library which will implement the multiple processes per slice architecture for large problems may require MUMPS, ParMetis, and PT-Scotch)
 Next, the user must ensure that the environmental variables PETSC_DIR, SLEPC_DIR, and PETSC_ARCH are set according to their PETSc/SLEPc installation. Also, the user must set the variables SIPS_DIR, LD_LIBRARY_PATH (to contain SIPS_DIR), OMP_NUM_THREADS=1, and (optionally) SCALAPACK_DIR. The file setenv contains prototypes of these definitions and can be loaded with the source command in bash.
 
 To compile change to the SIPS directory and call 
 
     make
     
-The code can be tested by calling 
+This will compile libsips.so, libsips_square.so, and sips_square. The code can be tested by calling 
 
     make test
 
@@ -57,9 +57,12 @@ Additional information about the test program sips_square can be found by runnin
 In order to use the code, the header files which describe the available functions should be included:
 
     #include <sips.h>
+
 or    
 
     #include <sips_square.h>
+
+Likewise, fortran users can import interfaces to the libraries in sips.F90 and sips_square.F90.
 
 The libraries containing the compiled code should be linked by the compiler by adding -L${SIPS_DIR} and by using -lsips and/or -lsips_square.
 
@@ -69,7 +72,7 @@ Assuming your code uses a serial eigensolver (e.g. dsyev from Lapack), then the 
 
     mpiexec -n n_procs my_program
 
-The program will run through serial execution where each process performs the same calculation in order to set up the matrix (presumably there will be a global computational cost of O(<img src="https://latex.codecogs.com/gif.latex?n*N^2"/>) to set up the matrix). Then each process will call the eigensolver, where the process will be assigned a slice and solve its slice (global computational cost O(<img src="https://latex.codecogs.com/gif.latex?N^3"/>)). The sips_square routines are set up to gather the solution so that every process ends up with the entire set of eigenvalues and eigenvectors. When the processes leave the call to the solver, they resume their serial execution with each process performing the same operations on its local copy of the matrix. If other O(<img src="https://latex.codecogs.com/gif.latex?N^3"/>) computations are necessary, then additional parallelism is needed. This is one reason why the SIPSolve driver may be desirable over the sips_square drivers.
+The program will run through serial execution where each process performs the same calculation in order to set up the matrix (presumably there will be a global computational cost of O(<img src="https://latex.codecogs.com/gif.latex?n*N^2"/>) to set up the matrix). Then each process will call the eigensolver, where the process will be assigned a slice and solve its slice (global computational cost O(<img src="https://latex.codecogs.com/gif.latex?N^3"/>)). The sips_square routines are set up to gather the solution so that every process ends up with the entire set of eigenvalues and eigenvectors. When the processes leave the call to the solver, they resume their serial execution with each process performing the same operations on its local copy of the matrix. If other O(<img src="https://latex.codecogs.com/gif.latex?N^3"/>) computations are necessary, then additional parallelism is needed (e.g. the SIPSolve driver).
 
 ## dsygvs - Solving a square matrix
 
@@ -77,7 +80,7 @@ The definition of dsygvs is:
 
     int dsygvs(int 	*N, double  *A, double  *B, double 	*W)
 
-N is the size of the matrix. A and B are square NxN matrices. On output A contains the eigenvectors and W (an N array) contains the eigenvalues. If an eigenvalue problem but not a generalized eigenvalue problem is desired, then NULL can be passed instead of matrix B. dsygvs makes many default assumptions and is equivalent to calling dsygvsx with NULL for all values besides N,A,B, and W.  
+N is the size of the matrix. A and B are square NxN matrices. On output A contains the eigenvectors and W (an array of size N) contains the eigenvalues. If an eigenvalue problem but not a generalized eigenvalue problem is desired, then NULL can be passed instead of matrix B. dsygvs makes many default assumptions and is equivalent to calling dsygvsx with NULL for all values besides N,A,B, and W.  
 
 ## dsygvsx - Expert Driver for square matrices
 
@@ -105,7 +108,7 @@ B_pttr - pointer to PETSc matrix B.
 
 interval, interval_optimization, eig_prev, and nEigPrev behave the same as in dsygvx including with regards to passing of NULL to enable default options.
 
-returnedeps returns the Eigen Problem Solver object from the SLEPc library. The EPS object contains the solution (eigenvalues and eigenvectors) to the problem. These can be object by a call to eigenvaluesFromEPS(EPS *epsaddr,double *W,int N), int eigenvectorsFromEPS(EPS *epsaddr,PetscScalar *A,int N), or simultaneous with squareFromEPS(EPS *epsaddr,PetscScalar *A,double *W,int N). A lot of memory is used by the EPS object and should be cleaned up by EPSDestroy. Users solving very large problems may wish to use the features of SIPSolve only for the first diagonalization and perform future diagonalizations starting with returnedeps. 
+returnedeps returns the Eigen Problem Solver object from the SLEPc library. The EPS object contains the solution (eigenvalues and eigenvectors) to the problem. These can be obtained by a call to eigenvaluesFromEPS(EPS *epsaddr,double *W,int N), int eigenvectorsFromEPS(EPS *epsaddr,PetscScalar *A,int N), or simultaneous with squareFromEPS(EPS *epsaddr,PetscScalar *A,double *W,int N). A lot of memory is used by the EPS object and should be cleaned up by EPSDestroy.
 
 
 # What are the important knobs and performance characteristics of the solver?
@@ -139,7 +142,7 @@ The first test is of a matrix with an eigenspectrum that is distributed like a c
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/Threadspeed_1000_nanotube_WithoutInfProcessor.png) 
 
 ### Repeated solving of matrices with similar eigenvalue distributions
-This next test is of a matrix with a very poor eigenspectrum distribution. The first diagonalization used uniformly distributed subintervals. The second diagonalization used the eigenvalues from the previous run to distribute the subintervals. This test was ran using the -doublediag option of sips_square. It can be seen that the first diagonalization only achieved a speed up of about 4x using 48 processor aside from a few points which had a better balance. 
+This next test is of a matrix with a very poor eigenspectrum distribution. The first diagonalization used uniformly distributed subintervals. The second diagonalization used the eigenvalues from the previous run to distribute the subintervals. This test was ran using the -doublediag option of sips_square. It can be seen that the first diagonalization only achieved a speed up of about 4x using 48 processors aside from a few points which had a better balance. 
 
 ![Soft Scaling Behavior](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/FirstDiagRate.png)
 
