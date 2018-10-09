@@ -126,7 +126,7 @@ Many users wish to know what algorithm will solve their problem the fastest. If 
 
 Therefore, here we compare the time to solution of the spectrum slicing algorithm (dsygvs) and lapack (dsygv) versus the problem size (N, set using the -rows option of sips_squaretest) and the sparsity (controlled using the -nonzerodiagonals option of sips_squaretest). The matrices produced were diagonalized by both algorithms and were timed using the time command.
 
-![SIPS Versus Lapack Timing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SipsVsLapackTiming.png)
+![SIPS Versus Lapack Timing](https://raw.githubusercontent.com/aruth2/spectrum-slicing/master/SipsVsLapackTiming4.png)
 
 Each color shade represents a factor of 2 difference in speed. We find roughly equal speed between the lapack and sips calls when 1/16th (about 6%) of the matrix is nonzero. 
 
